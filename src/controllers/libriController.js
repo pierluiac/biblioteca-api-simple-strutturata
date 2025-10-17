@@ -74,20 +74,6 @@ class LibriController {
     static createLibro = asyncHandler(async (req, res) => {
         const libroData = req.body;
         
-        // Verifica se esiste già un libro con lo stesso ISBN
-        if (libroData.isbn) {
-            const existingLibro = await Libro.findByIsbn(libroData.isbn);
-            if (existingLibro) {
-                return res.status(409).json({
-                    success: false,
-                    error: {
-                        message: 'Un libro con questo ISBN esiste già',
-                        status: 409
-                    }
-                });
-            }
-        }
-
         const libro = new Libro(libroData);
         
         // Validazione
@@ -139,20 +125,6 @@ class LibriController {
                     status: 404
                 }
             });
-        }
-
-        // Verifica ISBN duplicato se viene modificato
-        if (updateData.isbn && updateData.isbn !== libro.isbn) {
-            const existingLibro = await Libro.findByIsbn(updateData.isbn);
-            if (existingLibro) {
-                return res.status(409).json({
-                    success: false,
-                    error: {
-                        message: 'Un libro con questo ISBN esiste già',
-                        status: 409
-                    }
-                });
-            }
         }
 
         // Aggiorna i campi
