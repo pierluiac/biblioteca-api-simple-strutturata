@@ -323,65 +323,14 @@ class PrestitiController {
     });
 
     /**
-     * GET /api/prestiti/stats - Ottiene statistiche sui prestiti
+     * GET /api/prestiti/stats - Ottiene statistiche sui prestiti (versione ottimizzata)
      */
     static getPrestitiStats = asyncHandler(async (req, res) => {
-        const totalPrestiti = await Prestito.count();
-        const prestitiAttivi = await Prestito.count('attivo');
-        const prestitiRestituiti = await Prestito.count('restituito');
-
-        // Calcola prestiti scaduti
-        const prestitiAttiviList = await Prestito.findAll({ stato: 'attivo', limit: 1000 });
-        const prestitiScaduti = prestitiAttiviList.filter(p => p.isScaduto()).length;
-
-        // Calcola libro più prestato
-        const allPrestiti = await Prestito.findAll({ limit: 1000 });
-        const libroCounts = {};
-        allPrestiti.forEach(p => {
-            if (p.libro_titolo) {
-                libroCounts[p.libro_titolo] = (libroCounts[p.libro_titolo] || 0) + 1;
-            }
-        });
-        const libroPiuPrestato = Object.keys(libroCounts).length > 0 ? 
-            Object.entries(libroCounts).reduce((a, b) => libroCounts[a[0]] > libroCounts[b[0]] ? a : b) : null;
-
-        // Calcola utente più attivo
-        const utenteCounts = {};
-        allPrestiti.forEach(p => {
-            if (p.utente_nome && p.utente_cognome) {
-                const nomeCompleto = `${p.utente_nome} ${p.utente_cognome}`;
-                utenteCounts[nomeCompleto] = (utenteCounts[nomeCompleto] || 0) + 1;
-            }
-        });
-        const utentePiuAttivo = Object.keys(utenteCounts).length > 0 ? 
-            Object.entries(utenteCounts).reduce((a, b) => utenteCounts[a[0]] > utenteCounts[b[0]] ? a : b) : null;
-
-        // Calcola media giorni prestito
-        const prestitiConDurata = allPrestiti.filter(p => p.data_prestito && p.data_restituzione);
-        const mediaGiorni = prestitiConDurata.length > 0 ? 
-            prestitiConDurata.reduce((sum, p) => {
-                const inizio = new Date(p.data_prestito);
-                const fine = new Date(p.data_restituzione);
-                return sum + Math.ceil((fine - inizio) / (1000 * 60 * 60 * 24));
-            }, 0) / prestitiConDurata.length : 0;
-
+        const stats = await Prestito.getStats();
+        
         res.json({
             success: true,
-            data: {
-                totale_prestiti: totalPrestiti,
-                prestiti_attivi: prestitiAttivi,
-                prestiti_scaduti: prestitiScaduti,
-                prestiti_restituiti: prestitiRestituiti,
-                libro_piu_prestato: libroPiuPrestato ? {
-                    titolo: libroPiuPrestato[0],
-                    conteggio: libroPiuPrestato[1]
-                } : null,
-                utente_piu_attivo: utentePiuAttivo ? {
-                    nome_completo: utentePiuAttivo[0],
-                    conteggio: utentePiuAttivo[1]
-                } : null,
-                media_giorni_prestito: mediaGiorni
-            }
+            data: stats
         });
     });
 

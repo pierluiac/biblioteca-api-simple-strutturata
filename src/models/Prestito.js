@@ -158,6 +158,83 @@ class Prestito {
     }
 
     /**
+     * Ottiene statistiche complete sui prestiti con query SQL efficienti
+     */
+    static async getStats() {
+        // Query principale per statistiche base
+        const baseStats = await database.get(`
+            SELECT
+                COUNT(*) AS totale_prestiti,
+                SUM(CASE WHEN stato = 'attivo' THEN 1 ELSE 0 END) AS prestiti_attivi,
+                SUM(CASE WHEN stato = 'restituito' THEN 1 ELSE 0 END) AS prestiti_restituiti,
+                SUM(CASE WHEN stato = 'attivo' AND data_scadenza < CURRENT_TIMESTAMP THEN 1 ELSE 0 END) AS prestiti_scaduti
+            FROM prestiti
+        `);
+
+        // Query per libro più prestato
+        const libroPiuPrestato = await database.get(`
+            SELECT 
+                l.titolo,
+                COUNT(*) as conteggio
+            FROM prestiti p
+            LEFT JOIN libri l ON p.libro_id = l.id
+            WHERE l.titolo IS NOT NULL
+            GROUP BY l.titolo
+            ORDER BY conteggio DESC
+            LIMIT 1
+        `);
+
+        // Query per utente più attivo
+        const utentePiuAttivo = await database.get(`
+            SELECT 
+                u.nome || ' ' || u.cognome as nome_completo,
+                COUNT(*) as conteggio
+            FROM prestiti p
+            LEFT JOIN utenti u ON p.utente_id = u.id
+            WHERE u.nome IS NOT NULL AND u.cognome IS NOT NULL
+            GROUP BY u.nome, u.cognome
+            ORDER BY conteggio DESC
+            LIMIT 1
+        `);
+
+        // Query per media giorni prestito
+        const mediaGiorni = await database.get(`
+            SELECT 
+                AVG(
+                    CASE 
+                        WHEN data_restituzione IS NOT NULL 
+                        THEN julianday(data_restituzione) - julianday(data_prestito)
+                        ELSE NULL 
+                    END
+                ) as media_giorni_prestito
+            FROM prestiti
+            WHERE data_prestito IS NOT NULL AND data_restituzione IS NOT NULL
+        `);
+
+        // Calcola percentuale scaduti
+        const percentualeScaduti = baseStats.totale_prestiti > 0 ? 
+            (baseStats.prestiti_scaduti / baseStats.totale_prestiti * 100).toFixed(2) : 0;
+
+        return {
+            totale_prestiti: baseStats.totale_prestiti,
+            prestiti_attivi: baseStats.prestiti_attivi,
+            prestiti_restituiti: baseStats.prestiti_restituiti,
+            prestiti_scaduti: baseStats.prestiti_scaduti,
+            percentuale_scaduti: parseFloat(percentualeScaduti),
+            libro_piu_prestato: libroPiuPrestato ? {
+                titolo: libroPiuPrestato.titolo,
+                conteggio: libroPiuPrestato.conteggio
+            } : null,
+            utente_piu_attivo: utentePiuAttivo ? {
+                nome_completo: utentePiuAttivo.nome_completo,
+                conteggio: utentePiuAttivo.conteggio
+            } : null,
+            media_giorni_prestito: mediaGiorni.media_giorni_prestito ? 
+                Math.round(mediaGiorni.media_giorni_prestito * 10) / 10 : 0
+        };
+    }
+
+    /**
      * Crea un nuovo prestito
      */
     async save() {
