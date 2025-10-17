@@ -76,7 +76,7 @@ class PrestitiController {
      * POST /api/prestiti - Crea un nuovo prestito
      */
     static createPrestito = asyncHandler(async (req, res) => {
-        const { libro_id, utente_id } = req.body;
+        const { libro_id, utente_id, data_scadenza } = req.body;
         
         // Verifica che libro e utente esistano
         const libro = await Libro.findById(libro_id);
@@ -113,7 +113,7 @@ class PrestitiController {
             });
         }
 
-        const prestito = new Prestito({ libro_id, utente_id });
+        const prestito = new Prestito({ libro_id, utente_id, data_scadenza });
         
         // Validazione
         const validation = prestito.validate();

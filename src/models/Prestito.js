@@ -238,9 +238,10 @@ class Prestito {
      * Crea un nuovo prestito
      */
     async save() {
-        // Calcola la data di scadenza (30 giorni dal prestito)
-        const dataScadenza = new Date();
-        dataScadenza.setDate(dataScadenza.getDate() + 30);
+        // Usa la data di scadenza fornita nel payload
+        if (!this.data_scadenza) {
+            throw new Error('Data scadenza è obbligatoria');
+        }
 
         const sql = `
             INSERT INTO prestiti (libro_id, utente_id, data_scadenza, stato)
@@ -250,13 +251,13 @@ class Prestito {
         const params = [
             this.libro_id,
             this.utente_id,
-            dataScadenza.toISOString(),
+            new Date(this.data_scadenza).toISOString(),
             this.stato || 'attivo'
         ];
 
         const result = await database.run(sql, params);
         this.id = result.id;
-        this.data_scadenza = dataScadenza.toISOString();
+        this.data_scadenza = new Date(this.data_scadenza).toISOString();
         return this;
     }
 
@@ -330,9 +331,22 @@ class Prestito {
             errors.push('L\'ID dell\'utente è obbligatorio');
         }
 
-        // RIMOSSO: La validazione che impediva stesso ID libro/utente era ERRATA
-        // Un libro con ID 2 può essere prestato a un utente con ID 2 senza problemi
-        // La validazione corretta dovrebbe controllare se il libro è già prestato allo stesso utente
+        if (!this.data_scadenza) {
+            errors.push('La data di scadenza è obbligatoria');
+        } else {
+            // Validazione formato data
+            const dataScadenza = new Date(this.data_scadenza);
+            if (isNaN(dataScadenza.getTime())) {
+                errors.push('La data di scadenza non è valida');
+            } else {
+                // Validazione che la data non sia nel passato
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0); // Reset ore per confronto solo date
+                if (dataScadenza < oggi) {
+                    errors.push('La data di scadenza non può essere nel passato');
+                }
+            }
+        }
 
         return {
             isValid: errors.length === 0,
