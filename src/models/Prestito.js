@@ -20,6 +20,12 @@ class Prestito {
         // Dati relazionali (popolati quando necessario)
         this.libro = data.libro;
         this.utente = data.utente;
+        
+        // Campi JOIN dal database
+        this.libro_titolo = data.libro_titolo;
+        this.libro_autore = data.libro_autore;
+        this.utente_nome = data.utente_nome;
+        this.utente_cognome = data.utente_cognome;
     }
 
     /**
@@ -181,8 +187,22 @@ class Prestito {
      * Elimina un prestito
      */
     static async delete(id) {
+        // Prima ottieni il libro_id del prestito da eliminare
+        const prestito = await database.get('SELECT libro_id FROM prestiti WHERE id = ?', [id]);
+        
+        if (!prestito) {
+            return false;
+        }
+        
+        // Elimina il prestito
         const sql = 'DELETE FROM prestiti WHERE id = ?';
         const result = await database.run(sql, [id]);
+        
+        if (result.changes > 0) {
+            // Aggiorna lo stato del libro a disponibile
+            await database.run('UPDATE libri SET disponibile = 1 WHERE id = ?', [prestito.libro_id]);
+        }
+        
         return result.changes > 0;
     }
 
@@ -200,6 +220,7 @@ class Prestito {
         return result.count === 0;
     }
 
+
     /**
      * Valida i dati del prestito
      */
@@ -214,9 +235,9 @@ class Prestito {
             errors.push('L\'ID dell\'utente è obbligatorio');
         }
 
-        if (this.libro_id && this.utente_id && parseInt(this.libro_id) === parseInt(this.utente_id)) {
-            errors.push('Libro e utente devono essere diversi');
-        }
+        // RIMOSSO: La validazione che impediva stesso ID libro/utente era ERRATA
+        // Un libro con ID 2 può essere prestato a un utente con ID 2 senza problemi
+        // La validazione corretta dovrebbe controllare se il libro è già prestato allo stesso utente
 
         return {
             isValid: errors.length === 0,

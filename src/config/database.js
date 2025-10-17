@@ -40,7 +40,7 @@ class Database {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 titolo TEXT NOT NULL,
                 autore TEXT NOT NULL,
-                isbn TEXT UNIQUE NOT NULL,
+                isbn TEXT,
                 anno_pubblicazione INTEGER,
                 genere TEXT,
                 disponibile BOOLEAN DEFAULT 1,
@@ -89,10 +89,13 @@ class Database {
     async seedData() {
         const libri = [
             ['Il Signore degli Anelli', 'J.R.R. Tolkien', '978-88-04-12345-6', 1954, 'Fantasy'],
+            ['Il Signore degli Anelli', 'J.R.R. Tolkien', '978-88-04-12345-6', 1954, 'Fantasy'],
             ['1984', 'George Orwell', '978-88-04-12346-3', 1949, 'Distopia'],
-            ['Il Piccolo Principe', 'Antoine de Saint-Exupéry', '978-88-04-12347-0', 1943, 'Favola'],
+            ['Il Piccolo Principe', 'Antoine de Saint-Exupéry', null, 1943, 'Favola'],
             ['Dune', 'Frank Herbert', '978-88-04-12348-7', 1965, 'Fantascienza'],
-            ['Neuromante', 'William Gibson', '978-88-04-12349-4', 1984, 'Cyberpunk']
+            ['Dune', 'Frank Herbert', '978-88-04-12348-7', 1965, 'Fantascienza'],
+            ['Neuromante', 'William Gibson', null, 1984, 'Cyberpunk'],
+            ['Manuale di Programmazione', 'Autore Sconosciuto', null, 2020, 'Tecnico']
         ];
 
         const utenti = [

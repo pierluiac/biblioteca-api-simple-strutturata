@@ -147,8 +147,16 @@ class Libro {
             errors.push('L\'autore è obbligatorio');
         }
 
-        if (!this.isbn || this.isbn.trim().length === 0) {
-            errors.push('L\'ISBN è obbligatorio');
+        // ISBN è ora opzionale, ma se presente deve essere valido
+        if (this.isbn && this.isbn.trim().length > 0) {
+            // Validazione formato ISBN se presente
+            const isbnRegex = /^(978|979)-\d{1,5}-\d{1,7}-\d{1,6}-[\dX]$/;
+            const isbnSimpleRegex = /^\d{9}[\dX]$/;
+            const cleanIsbn = this.isbn.replace(/[- ]/g, '');
+            
+            if (!isbnRegex.test(this.isbn) && !isbnSimpleRegex.test(cleanIsbn)) {
+                errors.push('Il formato ISBN non è valido');
+            }
         }
 
         if (this.anno_pubblicazione && (this.anno_pubblicazione < 1000 || this.anno_pubblicazione > new Date().getFullYear())) {
