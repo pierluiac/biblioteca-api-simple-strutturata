@@ -13,17 +13,18 @@ class PrestitiController {
      * GET /api/prestiti - Ottiene tutti i prestiti
      */
     static getAllPrestiti = asyncHandler(async (req, res) => {
-        const { limit = 50, offset = 0, stato = '' } = req.query;
+        const { limit = 50, offset = 0, stato = '', search = '' } = req.query;
         
         const options = {
             limit: parseInt(limit),
             offset: parseInt(offset),
             stato: stato.trim(),
+            search: search.trim(),
             includeRelations: true
         };
 
         const prestiti = await Prestito.findAll(options);
-        const total = await Prestito.count(options.stato);
+        const total = await Prestito.count(options.stato, options.search);
 
         res.json({
             success: true,

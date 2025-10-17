@@ -32,7 +32,7 @@ class Prestito {
      * Trova tutti i prestiti con paginazione
      */
     static async findAll(options = {}) {
-        const { limit = 50, offset = 0, stato = '', includeRelations = false } = options;
+        const { limit = 50, offset = 0, stato = '', search = '', includeRelations = false } = options;
         
         let sql = `
             SELECT p.*, l.titolo as libro_titolo, l.autore as libro_autore,
@@ -47,6 +47,12 @@ class Prestito {
         if (stato) {
             sql += ` AND p.stato = ?`;
             params.push(stato);
+        }
+
+        if (search) {
+            sql += ` AND (l.titolo LIKE ? OR l.autore LIKE ? OR u.nome LIKE ? OR u.cognome LIKE ?)`;
+            const searchTerm = `%${search}%`;
+            params.push(searchTerm, searchTerm, searchTerm, searchTerm);
         }
 
         sql += ` ORDER BY p.data_prestito DESC LIMIT ? OFFSET ?`;
@@ -126,13 +132,25 @@ class Prestito {
     /**
      * Conta il numero totale di prestiti
      */
-    static async count(stato = '') {
-        let sql = 'SELECT COUNT(*) as count FROM prestiti WHERE 1=1';
+    static async count(stato = '', search = '') {
+        let sql = `
+            SELECT COUNT(*) as count 
+            FROM prestiti p
+            LEFT JOIN libri l ON p.libro_id = l.id
+            LEFT JOIN utenti u ON p.utente_id = u.id
+            WHERE 1=1
+        `;
         const params = [];
 
         if (stato) {
-            sql += ` AND stato = ?`;
+            sql += ` AND p.stato = ?`;
             params.push(stato);
+        }
+
+        if (search) {
+            sql += ` AND (l.titolo LIKE ? OR l.autore LIKE ? OR u.nome LIKE ? OR u.cognome LIKE ?)`;
+            const searchTerm = `%${search}%`;
+            params.push(searchTerm, searchTerm, searchTerm, searchTerm);
         }
 
         const result = await database.get(sql, params);
